@@ -1,33 +1,18 @@
-import React, { Component } from "react";
+import React, { useEffect, useState } from "react";
 import NewsItem from "./NewsItem";
 import Spinner from "./Spinner";
 import PropTypes from "prop-types";
 import InfiniteScroll from 'react-infinite-scroll-component';
 
-export class NewsSection extends Component {
-  static defaultProps = {
-    country: "us",
-    category: "general",
-    pageSize: 9,
-    // api:process.env.REACT_APP_API_KEY
-  };
-  static propTypes = {
-    country: PropTypes.string,
-    category: PropTypes.string,
-    pageSize: PropTypes.number,
-  };
-
-  constructor(props) {
-    super(props);
-    this.state = {
+const NewsSection = (props) => {
+  const [item, setItem] = useState({
       totalResult: 0,
       articles: [],
       loading: true,
       page: 1,
-    };
-    document.title = `${this.capitalize(this.props.category)} - NewsDMonkey`;
-  }
-  capitalize = (text) => { 
+  })
+  
+  const capitalize = (text) => { 
     if (text.length > 0) {
       let newText = text
         .toLowerCase()
@@ -37,40 +22,37 @@ export class NewsSection extends Component {
       return newText;
     }
   };
-  async updateNews(pageNo) {
-    // this.props.setProgress(20)
-    let url = `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=${this.props.api}&page=${pageNo}&pageSize=${this.props.pageSize}`;
+  const updateNews = async (pageNo) => {
+    // props.setProgress(20)
+    let url = `https://newsapi.org/v2/top-headlines?country=${props.country}&category=${props.category}&apiKey=${props.api}&page=${pageNo}&pageSize=${props.pageSize}`;
     let data = await fetch(url);
-    this.props.setProgress(50)
+    props.setProgress(50)
     let parsedData = await data.json();
-    this.props.setProgress(90)
-    this.setState({
+    props.setProgress(90)
+    setItem({
       page: pageNo,
       totalResult: parsedData.totalResults,
       articles: parsedData.articles,
       loading: false,
     });
-    this.props.setProgress(100)
+    props.setProgress(100)
   }
-  async componentDidMount() {
-    this.updateNews(this.state.page);
-  }
-  handlePrevClick = async () => {
-    this.updateNews(this.state.page - 1);
-  };
 
-  handleNextClick = async () => {
-    this.updateNews(this.state.page + 1);
-  };
-  fetchMoreData = async () => {
-    const nextPage = this.state.page + 1;
+  useEffect(()=>{
+    document.title = `${capitalize(props.category)} - NewsDMonkey`;
+    updateNews(item.page);
+    // eslint-disable-next-line
+  }, [])
+  
+  const fetchMoreData = async () => {
+    const nextPage = item.page + 1;
 
-    let url = `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=${this.props.api}&page=${nextPage}&pageSize=${this.props.pageSize}`;
+    let url = `https://newsapi.org/v2/top-headlines?country=${props.country}&category=${props.category}&apiKey=${props.api}&page=${nextPage}&pageSize=${props.pageSize}`;
 
     let data = await fetch(url);
     let parsedData = await data.json();
 
-    this.setState((prevState) => {
+    setItem((prevState) => {
       const existingUrls = new Set(
         prevState.articles.map(article => article.url)
       );
@@ -87,26 +69,26 @@ export class NewsSection extends Component {
     });
   };
 
-    // console.log(this.state.articles.length, this.state.totalResult)
+    // console.log(item.articles.length, item.totalResult)
   
 
-  render() {
+  
     return (
       <div className="my-3">
-        <h1 className="text-center" style={{marginTop: 70 + 'px'}}>News - Top {this.capitalize(this.props.category)} headings</h1>
+        <h1 className="text-center" style={{marginTop: 70 + 'px'}}>News - Top {capitalize(props.category)} headings</h1>
         {/* <Spinner/> */}
-        {this.state.loading && <Spinner />}
+        {item.loading && <Spinner />}
         <InfiniteScroll
-          dataLength={this.state.articles.length}
-          next={this.fetchMoreData}
+          dataLength={item.articles.length}
+          next={fetchMoreData}
           // style={{ display: "flex", flexDirection: "column-reverse" }} //To put endMessage and loader to the top.
           // inverse={true} //
-          hasMore={this.state.page < Math.ceil(this.state.totalResult / this.props.pageSize)}
+          hasMore={item.page < Math.ceil(item.totalResult / props.pageSize)}
           loader={<Spinner/>}
         >
           <div className="container my-3 ">
             <div className="row justify-content-center">
-              {this.state.articles.map((element) => {
+              {item.articles.map((element) => {
                   if (element.title !== null && element.description !== null) {
                     return (
                       <div className="col-md-4 d-flex justify-content-center" key={`${element.url}_${element.publishedAt}_${element.source?.name}`}>
@@ -135,19 +117,19 @@ export class NewsSection extends Component {
         </InfiniteScroll>
         {/* <div className="container d-flex justify-content-around my-5">
           <button
-            disabled={this.state.page <= 1}
+            disabled={item.page <= 1}
             className="btn btn-lg btn-dark"
-            onClick={this.handlePrevClick}
+            onClick={handlePrevClick}
           >
             &larr; Prev
           </button>
           <button
             disabled={
-              this.state.page >=
-              Math.ceil(this.state.totalResult / this.props.pageSize)
+              item.page >=
+              Math.ceil(item.totalResult / props.pageSize)
             }
             className="btn btn-lg btn-dark"
-            onClick={this.handleNextClick}
+            onClick={handleNextClick}
           >
             Next &rarr;
           </button>
@@ -155,6 +137,18 @@ export class NewsSection extends Component {
       </div>
     );
   }
-}
+
+
+NewsSection.defaultProps = {
+    country: "us",
+    category: "general",
+    pageSize: 9,
+    // api:process.env.REACT_APP_API_KEY
+  };
+NewsSection.propTypes = {
+    country: PropTypes.string,
+    category: PropTypes.string,
+    pageSize: PropTypes.number,
+  };
 
 export default NewsSection;
